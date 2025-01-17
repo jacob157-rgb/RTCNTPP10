@@ -8,7 +8,8 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <DMDESP.h>
-#include <fonts/EMSansSP8x16.h>
+// #include <fonts/EMSansSP8x16.h>
+#include <fonts/EMSansSP15x30.h>
 
 const char *ssid     = "TongTji";
 const char *password = "1938@tongtji";
@@ -17,7 +18,8 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
 RTC_DS3231 rtc;
 // DMDESP Setup
-#define Font EMSansSP8x16
+// #define Font EMSansSP8x16
+#define Font EMSansSP15x30
 #define DISPLAYS_WIDE 2 // Kolom Panel
 #define DISPLAYS_HIGH 2 // Baris Panel
 DMDESP Disp(DISPLAYS_WIDE, DISPLAYS_HIGH);  // Jumlah Panel P10 yang digunakan (KOLOM,BARIS)
@@ -41,28 +43,28 @@ void setup() {
 
   // NTPClient Init
   timeClient.begin();
-  timeClient.setTimeOffset(3600 * 7);
+  timeClient.setTimeOffset(3600 * 7); // Waktu Indonesia Barat
 
   // RTC Init
   if (!rtc.begin()) {
     Serial.println("RTC not detected. Using NTP time only.");
-    setRTCFromNTP(false);
+    timeClient.update(); // Update waktu dari NTP
     Jam = timeClient.getHours();
     Men = timeClient.getMinutes();
-    return;
+  } else {
+    // Update RTC from NTP if Wi-Fi is available
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Updating RTC from NTP...");
+      setRTCFromNTP(true);
+    } else if (rtc.lostPower()) {
+      Serial.println("RTC lost power and no Wi-Fi available. Unable to update time.");
+    }
   }
 
-  // Update RTC from NTP if Wi-Fi is available
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("Updating RTC from NTP...");
-    setRTCFromNTP(true);
-  } else if (rtc.lostPower()) {
-    Serial.println("RTC lost power and no Wi-Fi available. Unable to update time.");
-  }
-
-  Disp.start(); // Jalankan library DMDESP
+  // Initialize DMDESP
+  Disp.start();
   Disp.setBrightness(100); // Tingkat kecerahan
-  Disp.setFont(Font); // Huruf
+  Disp.setFont(Font);      // Huruf
 }
 
 void setRTCFromNTP(bool updateRTC) {
@@ -108,7 +110,7 @@ void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     // Periodically update RTC from NTP
     static unsigned long lastUpdate = 0;
-    if (millis() - lastUpdate > 3600000) { // Update every hour
+    if (millis() - lastUpdate > 3600000) { // Update setiap 1 jam
       Serial.println("Periodic RTC update from NTP...");
       setRTCFromNTP(true);
       lastUpdate = millis();
@@ -135,12 +137,14 @@ void loop() {
     Men = now.minute();
   } else {
     Serial.println("RTC not detected. Using NTP time...");
-    setRTCFromNTP(false);
+    timeClient.update();
+    Jam = timeClient.getHours();
+    Men = timeClient.getMinutes();
   }
   
   char isi[6];
   sprintf(isi, "%02d:%02d", Jam, Men);
   Disp.setFont(Font);
-  Disp.drawText(1,1,isi); 
+  Disp.drawText(1, 1, isi); 
   Disp.loop();
 }
