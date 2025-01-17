@@ -47,6 +47,8 @@ void setup() {
   if (!rtc.begin()) {
     Serial.println("RTC not detected. Using NTP time only.");
     setRTCFromNTP(false);
+    Jam = timeClient.getHours();
+    Men = timeClient.getMinutes();
     return;
   }
 
@@ -59,7 +61,7 @@ void setup() {
   }
 
   Disp.start(); // Jalankan library DMDESP
-  Disp.setBrightness(50); // Tingkat kecerahan
+  Disp.setBrightness(100); // Tingkat kecerahan
   Disp.setFont(Font); // Huruf
 }
 
@@ -139,6 +141,6 @@ void loop() {
   char isi[6];
   sprintf(isi, "%02d:%02d", Jam, Men);
   Disp.setFont(Font);
-  Disp.drawText(2,2,isi); 
+  Disp.drawText(1,1,isi); 
   Disp.loop();
 }
