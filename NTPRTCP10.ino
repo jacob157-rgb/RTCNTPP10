@@ -8,8 +8,7 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <DMDESP.h>
-// #include <fonts/EMSansSP8x16.h>
-#include <fonts/EMSansSP15x30.h>
+#include <fonts/JAM15x30.h>
 
 const char *ssid     = "TongTji";
 const char *password = "1938@tongtji";
@@ -19,7 +18,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 RTC_DS3231 rtc;
 // DMDESP Setup
 // #define Font EMSansSP8x16
-#define Font EMSansSP15x30
+#define Font JAM15x30
 #define DISPLAYS_WIDE 2 // Kolom Panel
 #define DISPLAYS_HIGH 2 // Baris Panel
 DMDESP Disp(DISPLAYS_WIDE, DISPLAYS_HIGH);  // Jumlah Panel P10 yang digunakan (KOLOM,BARIS)
@@ -145,6 +144,6 @@ void loop() {
   char isi[6];
   sprintf(isi, "%02d:%02d", Jam, Men);
   Disp.setFont(Font);
-  Disp.drawText(1, 1, isi); 
+  Disp.drawText(0, 0, isi); 
   Disp.loop();
 }
