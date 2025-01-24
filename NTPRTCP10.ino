@@ -8,17 +8,17 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <DMDESP.h>
-#include <fonts/JAM15x30.h>
+#include <fonts/JAM11x28.h>
 
-const char *ssid     = "TongTji";
-const char *password = "1938@tongtji";
+const char *ssid     = "Redmi Note 12 Pro";
+const char *password = "42006709";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
 RTC_DS3231 rtc;
 // DMDESP Setup
 // #define Font EMSansSP8x16
-#define Font JAM15x30
+#define Font JAM11x28
 #define DISPLAYS_WIDE 2 // Kolom Panel
 #define DISPLAYS_HIGH 2 // Baris Panel
 DMDESP Disp(DISPLAYS_WIDE, DISPLAYS_HIGH);  // Jumlah Panel P10 yang digunakan (KOLOM,BARIS)
@@ -106,6 +106,9 @@ void setRTCFromNTP(bool updateRTC) {
 }
 
 void loop() {
+  static unsigned long previousMillis = 0;
+  static bool showColon = true;
+
   if (WiFi.status() == WL_CONNECTED) {
     // Periodically update RTC from NTP
     static unsigned long lastUpdate = 0;
@@ -141,9 +144,21 @@ void loop() {
     Men = timeClient.getMinutes();
   }
   
+   unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= 500) {
+    previousMillis = currentMillis;
+    showColon = !showColon;
+  }
+
   char isi[6];
-  sprintf(isi, "%02d:%02d", Jam, Men);
+  if (showColon) {
+    sprintf(isi, "%02d:%02d", Jam, Men); // Dengan titik dua
+  } else {
+    sprintf(isi, "%02d!%02d", Jam, Men); // Tanpa titik dua
+  }
+
+  
   Disp.setFont(Font);
-  Disp.drawText(0, 0, isi); 
+  Disp.drawText(2, 2, isi); 
   Disp.loop();
 }
