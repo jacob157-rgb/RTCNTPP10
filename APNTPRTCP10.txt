@@ -1,0 +1,117 @@
+/*
+ @author Jacob JS
+*/
+
+#include <Wire.h>
+#include <Hash.h>
+#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <WiFiUdp.h>
+#include <NTPClient.h>
+#include <RTClib.h>
+#include <DMDESP.h>
+#include "JAM11x28.h"
+
+const char *ssid     = "AP-NTPRTCP10";
+const char *password = "19388391";
+
+RTC_DS3231 rtc;
+// DMDESP Setup
+// #define Font EMSansSP8x16
+#define Font JAM11x28
+#define DISPLAYS_WIDE 2 // Kolom Panel
+#define DISPLAYS_HIGH 2 // Baris Panel
+DMDESP Disp(DISPLAYS_WIDE, DISPLAYS_HIGH);  // Jumlah Panel P10 yang digunakan (KOLOM,BARIS)
+byte Jam;
+byte Men;
+
+unsigned long previousMillis = 0; // stored Millis
+
+const long DispInterval
+
+void setup() {
+  // Serial Init
+  Serial.begin(115200);
+
+  // Connect to Wi-Fi
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi connected!");
+
+  // NTPClient Init
+  timeClient.begin();
+  timeClient.setTimeOffset(3600 * 7); // Waktu Indonesia Barat
+
+  // RTC Init
+  if (!rtc.begin()) {
+    Serial.println("RTC not detected. Using NTP time only.");
+    timeClient.update(); // Update waktu dari NTP
+    Jam = timeClient.getHours();
+    Men = timeClient.getMinutes();
+  } else {
+    // Update RTC from NTP if Wi-Fi is available
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("Updating RTC from NTP...");
+      setRTCFromNTP(true);
+    } else if (rtc.lostPower()) {
+      Serial.println("RTC lost power and no Wi-Fi available. Unable to update time.");
+    }
+  }
+
+  // Initialize DMDESP
+  Disp.start();
+  Disp.setBrightness(100); // Tingkat kecerahan
+  Disp.setFont(Font);      // Huruf
+}
+
+void setRTCFromNTP(bool updateRTC) {
+  timeClient.update();
+  time_t epochTime = timeClient.getEpochTime();
+  struct tm *ptm = gmtime((time_t *)&epochTime);
+  DateTime ntpTime = DateTime(ptm->tm_year + 1900, ptm->tm_mon + 1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
+
+  // Print NTP time
+  Serial.print("NTP Time: ");
+  Serial.print(ntpTime.year());
+  Serial.print("-");
+  Serial.print(ntpTime.month());
+  Serial.print("-");
+  Serial.print(ntpTime.day());
+  Serial.print(" ");
+  Serial.print(ntpTime.hour());
+  Serial.print(":");
+  Serial.print(ntpTime.minute());
+  Serial.print(":");
+  Serial.println(ntpTime.second());
+
+  Jam = ntpTime.hour();
+  Men = ntpTime.minute();
+
+  // Check RTC vs NTP time difference
+  if (updateRTC) {
+    DateTime rtcTime = rtc.now();
+    long diff = (long)rtcTime.unixtime() - (long)ntpTime.unixtime();
+    diff = diff < 0 ? -diff : diff; // Absolute value
+
+    if (diff > 5) { // If time difference exceeds 5 seconds
+      Serial.println("RTC time difference too large. Updating RTC from NTP...");
+      rtc.adjust(ntpTime);
+      Serial.println("RTC updated successfully.");
+    } else {
+      Serial.println("RTC time is accurate. No update needed.");
+    }
+  }
+}
+
+void loop() {
+  unsigned long currentMillis = millis(); // now Millis
+  if (currentMillis - previousMillis >= DispInterval)
+}
